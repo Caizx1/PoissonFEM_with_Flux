@@ -79,13 +79,13 @@ if strcmp(order,'linear')
 else
     A = StiffnessAssembler2D(p,t,@(x,y)1,'quadratic');
     F = LoadAssembler2D(p,t,f,'quadratic');
-    [B,G] = BoundaryCoupling2D_quadratic(p',t',e_b_nodes,e_boundary,g);
+    [B,G] = BoundaryCoupling2D_discontinuous_linear(p',t',e_b_nodes,e_boundary,g);
 end
 
 % 线性系统求解
 np = size(p,2);
-ne_b = size(e_boundary,2);
-K = [A,B;B',sparse(ne_b,ne_b)];
+nb_dof = size(B,2);
+K = [A,B;B',sparse(nb_dof,nb_dof)];
 rhs = [F;G];
 sol = K \ rhs;
 

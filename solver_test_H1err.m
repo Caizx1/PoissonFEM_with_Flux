@@ -1,5 +1,5 @@
 %% compare_linear_quadratic_uniform_with_norms
-% 对比线性元+常数边界元与二次元+线性边界元在均匀网格下的收敛性
+% 对比线性元+常数边界元与二次元+间断线性边界元在均匀网格下的收敛性
 % 使用 H1 范数误差和边界 L2 范数误差
 
 clear; clc; close all;
@@ -58,8 +58,8 @@ for h_in = h_list
         fprintf('u收敛阶 = %.2f，ξ收敛阶 = %.2f \n',order_u_lin,order_xi_lin);
     end
 
-    % ---- 二次元 + 线性边界元 ----
-    h_bd_ratio = 1;
+    % ---- 二次元 + 间断线性边界元 ----
+    h_bd_ratio = 1.25;
     h_bd = h_bd_ratio * h_in;
     [u_quad, xi_quad, p_quad, t_quad, e_quad, e_b_nodes, e_bd] = ...
         primal_mixed_solver2D(geom, f, g, h_in, h_bd, 'quadratic', refine_opts);
@@ -69,14 +69,22 @@ for h_in = h_list
     err_u_quad_H1_node = H1_error(p_quad, t_quad, u_quad, u_exact, grad_u_exact, 'quadratic');
     err_u_quad_H1 = [err_u_quad_H1, err_u_quad_H1_node];
     dof_quad = [dof_quad, size(p_quad,1)];
-    % 边界通量 L2 误差（线性边界元：每个节点）
-    xi_exact_node = zeros(size(xi_quad));
-    for i = 1:length(xi_quad)
-        x = e_b_nodes(1, i);
-        y = e_b_nodes(2, i);
-        xi_exact_node(i) = xi_exact_fun(x, y);
+    % 边界通量 L2 误差（间断线性边界元：每个单元2个高斯点）
+    t1 = 0.5 - 0.5/sqrt(3);
+    t2 = 0.5 + 0.5/sqrt(3);
+    ne_bd = size(e_bd,2);
+    xi_exact_disc = zeros(size(xi_quad));
+    for e = 1:ne_bd
+        pA = e_b_nodes(:, e_bd(1,e));
+        pB = e_b_nodes(:, e_bd(2,e));
+        x1 = (1-t1)*pA(1) + t1*pB(1);
+        y1 = (1-t1)*pA(2) + t1*pB(2);
+        xi_exact_disc(2*(e-1)+1) = xi_exact_fun(x1, y1);
+        x2 = (1-t2)*pA(1) + t2*pB(1);
+        y2 = (1-t2)*pA(2) + t2*pB(2);
+        xi_exact_disc(2*(e-1)+2) = xi_exact_fun(x2, y2);
     end
-    err_xi_quad_L2_node = norm(xi_quad - xi_exact_node) / sqrt(length(xi_quad));
+    err_xi_quad_L2_node = norm(xi_quad - xi_exact_disc) / sqrt(length(xi_quad));
     err_xi_quad_L2 = [err_xi_quad_L2, err_xi_quad_L2_node];
     fprintf('二次元: dof = %d, H1 err_u = %e, L2 err_xi = %e\n', size(p_quad,1), err_u_quad_H1_node, err_xi_quad_L2_node);
 
