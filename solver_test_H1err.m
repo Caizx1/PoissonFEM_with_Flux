@@ -33,20 +33,20 @@ for h_in = h_list
     h_bd = h_bd_ratio * h_in;
 
     % ---- 线性元 + 常数边界元 ----
-    [u_lin, xi_lin, p_lin, t_lin, e_lin, e_b_nodes, e_bd] = ...
-        primal_mixed_solver2D(geom, f, g, h_in, h_bd, 'linear', refine_opts);
-    p_lin = p_lin';   % np×2
-    t_lin = t_lin';   % nt×3
+    result_lin = primal_mixed_solver2D(geom, f, g, h_in, h_bd, 'linear', refine_opts);
+    u_lin  = result_lin.sol.u;
+    xi_lin = result_lin.sol.xi;
+    p_lin  = result_lin.mesh.p';   % np×2
+    t_lin  = result_lin.mesh.t';   % nt×3
     % H1 误差
     err_u_lin_H1_node = H1_error(p_lin, t_lin, u_lin, u_exact, grad_u_exact, 'linear');
     err_u_lin_H1 = [err_u_lin_H1, err_u_lin_H1_node];
     dof_lin = [dof_lin, size(p_lin,1)];
-    % 边界通量 L2 误差（常数边界元：每条边中点）
-    midpoints = (e_b_nodes(:, e_bd(1,:)) + e_b_nodes(:, e_bd(2,:))) / 2;
+    % 边界通量 L2 误差（常数边界元：xi_nodes 为边中点）
+    xi_nodes_lin = result_lin.boundary.xi_nodes;
     xi_exact = zeros(size(xi_lin));
     for i = 1:length(xi_lin)
-        m = midpoints(:,i);
-        xi_exact(i) = xi_exact_fun(m(1), m(2));
+        xi_exact(i) = xi_exact_fun(xi_nodes_lin(1,i), xi_nodes_lin(2,i));
     end
     err_xi_lin_L2_node = norm(xi_lin - xi_exact) / sqrt(length(xi_lin));
     err_xi_lin_L2 = [err_xi_lin_L2, err_xi_lin_L2_node];
@@ -61,28 +61,20 @@ for h_in = h_list
     % ---- 二次元 + 间断线性边界元 ----
     h_bd_ratio = 1.25;
     h_bd = h_bd_ratio * h_in;
-    [u_quad, xi_quad, p_quad, t_quad, e_quad, e_b_nodes, e_bd] = ...
-        primal_mixed_solver2D(geom, f, g, h_in, h_bd, 'quadratic', refine_opts);
-    p_quad = p_quad';   % np×2
-    t_quad = t_quad';   % nt×6
+    result_quad = primal_mixed_solver2D(geom, f, g, h_in, h_bd, 'quadratic', refine_opts);
+    u_quad  = result_quad.sol.u;
+    xi_quad = result_quad.sol.xi;
+    p_quad  = result_quad.mesh.p';   % np×2
+    t_quad  = result_quad.mesh.t';   % nt×6
     % H1 误差（二次元）
     err_u_quad_H1_node = H1_error(p_quad, t_quad, u_quad, u_exact, grad_u_exact, 'quadratic');
     err_u_quad_H1 = [err_u_quad_H1, err_u_quad_H1_node];
     dof_quad = [dof_quad, size(p_quad,1)];
-    % 边界通量 L2 误差（间断线性边界元：每个单元2个高斯点）
-    t1 = 0.5 - 0.5/sqrt(3);
-    t2 = 0.5 + 0.5/sqrt(3);
-    ne_bd = size(e_bd,2);
+    % 边界通量 L2 误差（间断线性边界元：xi_nodes 为高斯点）
+    xi_nodes_quad = result_quad.boundary.xi_nodes;
     xi_exact_disc = zeros(size(xi_quad));
-    for e = 1:ne_bd
-        pA = e_b_nodes(:, e_bd(1,e));
-        pB = e_b_nodes(:, e_bd(2,e));
-        x1 = (1-t1)*pA(1) + t1*pB(1);
-        y1 = (1-t1)*pA(2) + t1*pB(2);
-        xi_exact_disc(2*(e-1)+1) = xi_exact_fun(x1, y1);
-        x2 = (1-t2)*pA(1) + t2*pB(1);
-        y2 = (1-t2)*pA(2) + t2*pB(2);
-        xi_exact_disc(2*(e-1)+2) = xi_exact_fun(x2, y2);
+    for i = 1:length(xi_quad)
+        xi_exact_disc(i) = xi_exact_fun(xi_nodes_quad(1,i), xi_nodes_quad(2,i));
     end
     err_xi_quad_L2_node = norm(xi_quad - xi_exact_disc) / sqrt(length(xi_quad));
     err_xi_quad_L2 = [err_xi_quad_L2, err_xi_quad_L2_node];
@@ -130,16 +122,16 @@ function err = H1_error(p, t, u_h, u_exact, grad_u_exact, order)
     % u_exact: 精确解函数句柄
     % grad_u_exact: 精确梯度函数句柄，返回 [∂u/∂x, ∂u/∂y]
     % order: 'linear' 或 'quadratic'
-    
+
     nt = size(t,1);
     err = 0;
-    
+
     % 高斯积分点（面积坐标）和权重（三点积分，精确到5次）
     gp = [1/6, 1/6, 2/3, 1/6;
           1/6, 2/3, 1/6, 1/6;
           2/3, 1/6, 1/6, 1/6];
     nGauss = size(gp,1);
-    
+
     for K = 1:nt
         if strcmp(order, 'linear')
             nodes = t(K,1:3);
@@ -150,7 +142,7 @@ function err = H1_error(p, t, u_h, u_exact, grad_u_exact, order)
         end
         xy = p(nodes, :);   % nNodes × 2
         ue = u_h(nodes);    % nNodes × 1
-        
+
         errK = 0;
         for i = 1:nGauss
             L1 = gp(i,1); L2 = gp(i,2); L3 = gp(i,3); w = gp(i,4);
@@ -178,7 +170,7 @@ function err = H1_error(p, t, u_h, u_exact, grad_u_exact, order)
             xq = N * xy(:,1);   % 点积：1×nNodes * nNodes×1 = 标量
             yq = N * xy(:,2);
             % 形函数对物理坐标的导数 (nNodes×2)
-            dNdx = dNdL / J;   
+            dNdx = dNdL / J;
             % 数值解和梯度
             u_h_q = N * ue;          % 1×nNodes * nNodes×1 = 标量
             grad_u_h_q = ue' * dNdx;  % 1×nNodes * nNodes×2 = 1×2
