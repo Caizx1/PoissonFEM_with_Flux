@@ -30,7 +30,10 @@ figure('Name', '加密后网格', 'Position', [100, 100, 800, 600]);
 triplot(elem, p(:,1), p(:,2), 'k-', 'LineWidth', 0.5);
 axis equal; hold on;
 % 高亮边界边
-plot([p(e(1,:),1); p(e(2,:),1)], [p(e(1,:),2); p(e(2,:),2)], 'r-', 'LineWidth', 2);
+nan_row = nan(1, size(e,2));        % 1×ne 的全 NaN 行向量
+x = reshape([p(e(1,:),1)'; p(e(2,:),1)'; nan_row], [], 1);
+y = reshape([p(e(1,:),2)'; p(e(2,:),2)'; nan_row], [], 1);
+plot(x, y, 'r-', 'LineWidth', 2);
 title('边界集中网格（红色为边界）');
 xlabel('x'); ylabel('y');
 
