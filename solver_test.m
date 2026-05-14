@@ -70,7 +70,7 @@ for h_in = h_list
     
     % ---- 边界集中加密网格 ----
     refine_opts.use = true;
-    % h_bd = 2 * h_in ^2;
+    h_bd = 2 * h_in ^2;
     [u_ref, xi_ref, p_ref, t_ref, e_ref, e_b_nodes, e_bd] = ...
         primal_mixed_solver2D(geom, f, g, h_in, h_bd,'linear', refine_opts);
     

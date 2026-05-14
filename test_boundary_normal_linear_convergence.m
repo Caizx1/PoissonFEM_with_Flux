@@ -1,4 +1,3 @@
-% test_linear_convergence_clean.m
 % 线性元边界法向导数收敛性测试（直接投影法计算）
 
 clear; clc; close all;
