@@ -1,69 +1,23 @@
-%% test_ratio_convergence2.m
-% 使用 H1_error 和 L2_boundary_error 函数，研究不同边界网格步长比下二次内部元+线性边界元的收敛阶
+%% test_ratio_convergence.m
+% 使用 H1_error 和 L2_boundary_error 函数，研究不同边界网格步长比下二次内部元+间断线性边界元的收敛阶
 % 输出每个 ratio 下 u_H1 误差和 xi_L2 误差的收敛阶，并绘制收敛阶随 ratio 变化的曲线
 
 clear; clc; close all;
 
 % ===================== 1. 问题定义 =====================
+examples = examples();
 
-% geom = Rectg(0, 0, 1, 1);                % 几何
-% u_exact = @(x,y) sin(pi*x) .* sin(pi*y); % 精确解
-% grad_u_exact = @(x,y) [pi*cos(pi*x).*sin(pi*y), pi*sin(pi*x).*cos(pi*y)]; % 精确梯度
-% f = @(x,y) 2*pi^2 * sin(pi*x) .* sin(pi*y); % 右端项
-% g = @(x,y) 0;                            % 齐次 Dirichlet
-% 
-% xi_exact_fun = @(x,y) ...                % 精确边界法向导数 ξ = -∂u/∂n
-%     (abs(x)<1e-12) * (-pi * sin(pi*y)) + ...
-%     (abs(x-1)<1e-12) * (-pi * sin(pi*y)) + ...
-%     (abs(y)<1e-12) * (-pi * sin(pi*x)) + ...
-%     (abs(y-1)<1e-12) * (-pi * sin(pi*x));
-
-% ===================== 非齐次 Dirichlet 算例（纯指数-三角） =====================
-% 精确解：u(x,y) = exp(x) * sin(pi*y) + exp(y) * sin(pi*x)
-% 该解在单位正方形边界上非零，光滑且不含多项式，右端项 f = (pi^2-1) * u
-
-% 几何：单位正方形
-geom = Rectg(0, 0, 1, 1);
-
-% 精确解
-u_exact = @(x,y) exp(x) .* sin(pi*y) + exp(y) .* sin(pi*x);
-
-% 精确梯度
-grad_u_exact = @(x,y) [exp(x).*sin(pi*y) + pi*exp(y).*cos(pi*x), ...
-                       pi*exp(x).*cos(pi*y) + exp(y).*sin(pi*x)];
-
-% 右端项 f = -Δu = (pi^2 - 1) * u
-f = @(x,y) (pi^2 - 1) * (exp(x).*sin(pi*y) + exp(y).*sin(pi*x));
-
-% Dirichlet 边界条件
-g = @(x,y) u_exact(x,y);
-
-xi_exact_fun = @(x,y) ...
-    (abs(y)   < 1e-12) * ( -pi*exp(x) - sin(pi*x) ) + ...          % 下边界
-    (abs(y-1) < 1e-12) * ( -pi*exp(x) + exp(1)*sin(pi*x) ) + ...   % 上边界
-    (abs(x)   < 1e-12) * ( -sin(pi*y) - pi*exp(y) ) + ...           % 左边界
-    (abs(x-1) < 1e-12) * ( exp(1)*sin(pi*y) - pi*exp(y) );          % 右边界
-
-% % ===================== 非齐次 Dirichlet 算例（法向导数连续） =====================
-% % 精确解：u(x,y) = sin(π x) + sin(π y)
-% % 该解在单位正方形边界上非零，且法向导数在角点处连续
-% 
-% % 几何：单位正方形
-% geom = Rectg(0, 0, 1, 1);
-% % 精确解
-% u_exact = @(x,y) sin(pi*x) + sin(pi*y);
-% % 精确梯度
-% grad_u_exact = @(x,y) [pi*cos(pi*x), pi*cos(pi*y)];
-% % 右端项 f = -Δu = π^2 sin(π x) + π^2 sin(π y)
-% f = @(x,y) pi^2 * (sin(pi*x) + sin(pi*y));
-% % Dirichlet 边界条件
-% g = @(x,y) u_exact(x,y);
-% xi_exact_fun = @(x,y) -pi * ones(size(x));
-
+ex = 2;
+geom   = examples(ex).geom;
+u_exact= examples(ex).u_exact;
+grad_u_exact = examples(ex).grad_u_exact;
+f      = examples(ex).f;
+g      = examples(ex).g;
+xi_exact_fun = examples(ex).xi_exact_fun;
 
 % ===================== 2. 参数设置 =====================
 h_list = [0.2, 0.1, 0.05, 0.025];       % 内部网格尺寸（粗到细）
-ratio_list = [0.5, 0.75, 1, 1.25, 1.5, 2]; % 边界/内部步长比
+ratio_list = [1.25, 1.5,1.75 2]; % 边界/内部步长比
 
 refine_opts.use = false;                % 不使用边界加密
 
@@ -84,12 +38,11 @@ for r = 1:length(ratio_list)
         h_bd = ratio * h_in;
         
         % 调用求解器（二次元）
-        [u, xi, p, t, e, e_b_nodes, e_boundary] = ...
-            primal_mixed_solver2D(geom, f, g, h_in, h_bd, 'quadratic', refine_opts);
-        
-        % 调整数据格式以适应误差函数
-        p = p';               % 2×np → np×2
-        t = t';               % 6×nt → nt×6
+        result_quad = primal_mixed_solver2D(geom, f, g, h_in, h_bd, 'quadratic', refine_opts);
+        u = result_quad.sol.u;
+        xi = result_quad.sol.xi;
+        p = result_quad.mesh.p';   % np×2
+        t = result_quad.mesh.t';   % nt×6
         
         % 计算 u 的 H1 误差（需要梯度函数）
         err_u_val = H1_error(p, t, u, u_exact, grad_u_exact, 'quadratic');
@@ -97,7 +50,14 @@ for r = 1:length(ratio_list)
         
         % 计算 xi 的 L2 边界误差（使用独立边界网格信息）
         % 注意：e_boundary 是 2×ne，e_b_nodes 是 2×nb
-        err_xi_val = L2_boundary_error(e_b_nodes, e_boundary, xi, xi_exact_fun);
+
+        xi_nodes = result_quad.boundary.xi_nodes;
+        xi_exact_disc = zeros(size(xi));
+        for i = 1:length(xi)
+            xi_exact_disc(i) = xi_exact_fun(xi_nodes(1,i), xi_nodes(2,i));
+        end
+        err_xi_val = norm(xi - xi_exact_disc) / sqrt(length(xi));
+
         err_xi = [err_xi, err_xi_val];
         
         h_vals = [h_vals, h_in];
@@ -127,9 +87,6 @@ plot(ratio_list, conv_u, 'b-o', 'LineWidth', 1.5, 'MarkerSize', 8); hold on;
 plot(ratio_list, conv_xi, 'r-s', 'LineWidth', 1.5, 'MarkerSize', 8);
 xlabel('h_{bd} / h_{in}');
 ylabel('收敛阶');
-title('二次内部元 + 线性边界元：不同边界网格步长比下的收敛阶');
+title('二次内部元 + 间断线性边界元：不同边界网格步长比下的收敛阶');
 legend('u (H^1 误差)', 'ξ (L^2 边界误差)', 'Location', 'best');
 grid on;
-
-% 可选：绘制误差随 h 变化的详细曲线（最后一个比值）
-% 这里略去，可按需添加

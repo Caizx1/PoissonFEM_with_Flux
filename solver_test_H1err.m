@@ -7,7 +7,7 @@ clear; clc; close all;
 % ===================== 1. 定义问题 =====================
 examples = examples();
 
-ex = 6;
+ex = 2;
 geom   = examples(ex).geom;
 u_exact= examples(ex).u_exact;
 grad_u_exact = examples(ex).grad_u_exact;

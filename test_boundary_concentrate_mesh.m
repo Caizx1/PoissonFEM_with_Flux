@@ -1,22 +1,17 @@
-%% test_primal_mixed_solver2D_nonhomogeneous
-% 测试非齐次 Dirichlet 边界条件的 Poisson 方程
-% 精确解: u(x,y) = x^2 + y^2
-% 边界条件: g = x^2 + y^2
-% 右端项: f = -4
-
+%% test_boundary_concentrate_mesh.m
+% 测试脚本：比较均匀网格和边界集中加密网格的数值解和误差
 clear; clc; close all;
 
 % ===================== 定义问题和精确解 =====================
-geom = Rectg(0, 0, 1, 1);   % 几何
+examples = examples();
 
-u_exact = @(x,y) sin(pi * x) .* sin(pi * y);
-f = @(x,y) 2 * pi ^ 2 * sin(pi * x) .* sin(pi * y);
-g = @(x,y) 0;
-xi_exact_fun = @(x,y) ...
-    (abs(x)<1e-12) * (-pi) * sin(pi * y) + ...
-    (abs(x-1)<1e-12) * (-pi) * sin(pi * y) + ...
-    (abs(y)<1e-12) * (-pi) * sin(pi * x) + ...
-    (abs(y-1)<1e-12) * (-pi) * sin(pi * x);
+ex = 2;
+geom   = examples(ex).geom;
+u_exact= examples(ex).u_exact;
+grad_u_exact = examples(ex).grad_u_exact;
+f      = examples(ex).f;
+g      = examples(ex).g;
+xi_exact_fun = examples(ex).xi_exact_fun;
 
 % ===================== 网格参数设置 =====================
 h_list = [0.2, 0.1, 0.05, 0.025];   % 内部网格尺寸
@@ -53,15 +48,7 @@ for h_in = h_list
         m = midpoints(:,i);
         xi_exact_vec(i) = xi_exact_fun(m(1), m(2));
     end
-
-    % figure('Name', '边界通量对比', 'Position', [100, 100, 800, 600]);
-    % s = 1:length(xi_unif);
-    % plot(s, xi_unif, 'b-o', 'LineWidth', 1.5); hold on;
-    % plot(s, xi_exact_vec, 'r--x', 'LineWidth', 1.5);
-    % xlabel('边界边序号'); ylabel('ξ = -∂u/∂n');
-    % legend('ξ_h', 'ξ_{exact}'); title('边界通量对比');
-    % grid on;
-
+    
     err_xi_unif_node = norm(xi_unif - xi_exact_vec) / sqrt(length(xi_unif));
     err_xi_uniform = [err_xi_uniform, err_xi_unif_node];
     
@@ -159,9 +146,3 @@ plot(s, xi_exact_vis, 'r--x', 'LineWidth', 1.5);
 xlabel('边界边序号'); ylabel('ξ = -∂u/∂n');
 legend('ξ_h', 'ξ_{exact}'); title('边界通量对比');
 grid on;
-
-% 绘制独立边界网格和内部网格边界
-% figure('Name', '网格边界贴合情况', 'Position', [100, 100, 800, 600]);
-% triplot(t_plot, p_plot(:,1), p_plot(:,2), 'k-', 'LineWidth', 0.5); hold on;
-% plot(e_b_nodes(1, e_bd), e_b_nodes(2, e_bd), 'r-', 'LineWidth', 2);
-% axis equal; title('内部网格边界（黑）与独立边界网格（红）');
