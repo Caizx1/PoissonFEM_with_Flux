@@ -1,0 +1,2 @@
+rmpath(genpath(pwd));
+savepath;
