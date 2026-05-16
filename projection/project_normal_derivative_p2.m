@@ -207,35 +207,3 @@ function [x, w] = gauss_rule_1d(n)
             error('仅支持 n=1,2,3,4 的高斯规则');
     end
 end
-
-% -------------------------------------------------------------------------
-% 外法向量计算
-function n_out = outer_normal(triangle_vertices, edge_endpoints)
-    A = triangle_vertices(1,:);
-    B = triangle_vertices(2,:);
-    C = triangle_vertices(3,:);
-    P1 = edge_endpoints(1,:);
-    P2 = edge_endpoints(2,:);
-    verts = [A; B; C];
-    tol = 1e-12;
-    idx = true(3,1);
-    for i = 1:3
-        if norm(verts(i,:) - P1) < tol || norm(verts(i,:) - P2) < tol
-            idx(i) = false;
-        end
-    end
-    third = verts(idx, :);
-    d = P2 - P1;
-    L = norm(d);
-    if L < tol
-        error('边长度为零');
-    end
-    d_unit = d / L;
-    n = [-d_unit(2), d_unit(1)];
-    v = P1 - third;
-    if dot(n, v) > 0
-        n_out = n(:);
-    else
-        n_out = -n(:);
-    end
-end
