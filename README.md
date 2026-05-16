@@ -1,10 +1,10 @@
 # Poisson 方程有限元求解器集合
 
-本项目实现了多种求解 Poisson 方程 \(-\Delta u = f\) 的有限元方法，支持 **Dirichlet 边界条件**，并可计算边界法向导数 \(\xi = \partial u/\partial n\)。包含三种主要求解器：
+本项目实现了多种求解 Poisson 方程 & -\Delta u = f & 的有限元方法，支持 **Dirichlet 边界条件**，并可计算边界法向导数 $ \xi = \partial u/\partial n$。包含三种主要求解器：
 
-- **原始-混合格式**（primal-mixed）：同时求解 \(u\) 和边界法向导数 \(\xi\)，支持独立边界网格（非匹配网格），可处理不连续通量。
-- **标准有限元 + 直接投影法**：先求解 \(u\)，再在单元边界上直接计算 \(\xi\)（通过梯度点乘法向量）。
-- **标准有限元 + 变分法（残差法）**：求解 \(u\) 后，利用残差和边界质量矩阵计算 \(\xi\)。
+- **原始-混合格式**（primal-mixed）：同时求解 $u$ 和边界法向导数 $\xi$，支持独立边界网格（非匹配网格），可处理不连续通量。
+- **标准有限元 + 直接投影法**：先求解 $u$，再在单元边界上直接计算 $\xi$（通过梯度点乘法向量）。
+- **标准有限元 + 变分法（残差法）**：求解 $u$ 后，利用残差和边界质量矩阵计算 $\xi$。
 
 ## 主要特性
 
@@ -15,6 +15,7 @@
 - 提供多个测试算例（光滑解、角点奇异性、非齐次边界等）。
 
 ## 目录结构
+`plain
 PoissonFEM_with_Flux/
 ├── solvers/ # 主求解器
 │ ├── primal_mixed_solver2D.m # 原始-混合格式
@@ -25,11 +26,7 @@ PoissonFEM_with_Flux/
 │ ├── linear2quadMesh.m
 │ ├── trimeshRefine.m
 │ ├── boundary_concentrated_mesh.m
-│ ├── boundaryDivide.m
-│ ├── boundary_segment.m
-│ ├── point2seg_dist.m
-│ ├── elem_diam.m
-│ └── dist2bd.m
+│ ├── ...
 │
 ├── fem_assembly/ # 有限元矩阵组装
 │ ├── StiffnessAssembler2D.m
@@ -73,7 +70,7 @@ PoissonFEM_with_Flux/
 └── README.md
 └── setpath.m
 └── rm_path.m
-
+`
 
 ## 环境依赖
 
